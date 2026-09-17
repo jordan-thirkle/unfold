@@ -53,7 +53,7 @@ final class OverlayPresenter {
         for view in views {
             view.axis = preset.axis
         }
-        apply(sim.state)
+        apply(sim)
         for window in windows {
             window.orderFrontRegardless()
         }
@@ -95,7 +95,7 @@ final class OverlayPresenter {
         // `advance` reports `.finished` exactly once, on the step that
         // completes the fold — so this method only has to forward events.
         let events = sim.advance(by: delta)
-        apply(sim.state)
+        apply(sim)
         simulation = sim
 
         for event in events {
@@ -107,21 +107,14 @@ final class OverlayPresenter {
         }
     }
 
-    private func apply(_ state: FoldState) {
-        let rendered: FoldState
-        if reversed {
-            // Closing runs the same curve backwards, so a fold shut is the
-            // exact inverse of a fold open.
-            rendered = FoldState(
-                progress: 1 - state.progress,
-                hingeAngle: 180 - state.hingeAngle,
-                panelInset: 1 - state.panelInset,
-                opacity: 1 - state.opacity,
-                seamGlow: 1 - state.seamGlow
-            )
-        } else {
-            rendered = state
-        }
+    /// Reverse time before easing; complementing geometry loses nonlinear fades.
+    static func renderState(for simulation: FoldSimulation, reversed: Bool) -> FoldState {
+        guard reversed else { return simulation.state }
+        return simulation.preset.state(at: simulation.preset.easing.value(1 - simulation.rawProgress))
+    }
+
+    private func apply(_ simulation: FoldSimulation) {
+        let rendered = Self.renderState(for: simulation, reversed: reversed)
         for view in views {
             view.state = rendered
         }

@@ -77,6 +77,18 @@ struct PresenterChecks {
         check(views.allSatisfy { $0.state == FoldState.closed }, "reversed play ends exactly covered")
         check(starts == 1 && finishes == 1, "reversed play announces start and finish once each (got \(starts)/\(finishes))")
 
+        // Check interior geometry AND reversed timing, not just endpoints.
+        for preset in AnimationPreset.all {
+            for fraction in [0.25, 0.5, 0.75] {
+                var simulation = FoldSimulation(preset: preset, duration: 0.8)
+                _ = simulation.advance(by: 0.8 * fraction)
+                let expected = preset.state(at: preset.easing.value(1 - simulation.rawProgress))
+                check(OverlayPresenter.renderState(for: simulation, reversed: true) == expected,
+                      "\(preset.id): closing retraces opening at \(fraction)")
+            }
+        }
+
+
         print("Presenter checks: \(failures) failures")
         exit(failures == 0 ? 0 : 1)
     }
