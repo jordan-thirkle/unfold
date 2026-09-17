@@ -1,0 +1,17 @@
+# Build output
+.build/
+build/
+dist/
+*.app
+
+# macOS
+.DS_Store
+._*
+
+# Xcode / editor
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+.swiftpm/
+.vscode/
+.idea/
