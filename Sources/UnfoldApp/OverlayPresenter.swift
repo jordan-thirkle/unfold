@@ -49,11 +49,15 @@ final class OverlayPresenter {
         self.reversed = reversed
         lastTick = CACurrentMediaTime()
 
+        // Direction belongs to the preset, not the view's default axis.
+        for view in views {
+            view.axis = preset.axis
+        }
         apply(sim.state)
         for window in windows {
             window.orderFrontRegardless()
         }
-        onEvent?(.started)
+        // The simulation emits .started on its first tick. Do not duplicate it.
 
         timer?.invalidate()
         let timer = Timer.scheduledTimer(

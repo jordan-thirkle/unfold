@@ -73,7 +73,17 @@ failing silently.
 swift run unfold-verify
 ```
 
-19 checks over the deterministic core, exiting non-zero on failure.
+20 checks over the deterministic core, exiting non-zero on failure.
+
+A second harness exercises the real AppKit presenter and renderer — window
+lifecycle, rendered state, event counts, and the closing path:
+
+```bash
+bash scripts/test-presenter.sh
+```
+
+It needs a logged-in graphical session, so it runs on a real Mac rather than
+in CI. The framework-free verifier above stays the CI gate.
 
 ### Why not just `swift test`
 
@@ -98,7 +108,8 @@ Sources/
   unfold-verify/  runs those checks
   UnfoldApp/      the menu bar agent: system events + overlay rendering
 Tests/
-  UnfoldCoreTests/  Swift Testing wrappers over UnfoldChecks
+  UnfoldCoreTests/    Swift Testing wrappers over UnfoldChecks
+  PresenterChecks/    executable harness for the real AppKit overlay
 ```
 
 Two ideas do the real work:

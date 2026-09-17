@@ -95,6 +95,25 @@ extension UnfoldChecks {
                 let result = store.load()
                 return result.configuration == .default && result.problem != nil
             }
+        },
+
+        Check(name: "Out-of-range durations in a hand-edited config are clamped") {
+            withTemporaryDirectory { directory in
+                let store = UnfoldConfigStore(directory: directory)
+                do {
+                    // Open: 42s would hold an opaque veil over the screen.
+                    // Close: below the menu's floor, which must not matter.
+                    try Data("""
+                    {"presetID":"unfold","openDuration":42,"closeDuration":0.01,"animateOnOpen":true,"animateOnClose":true,"respectReduceMotion":true}
+                    """.utf8).write(to: store.fileURL)
+                } catch {
+                    return false
+                }
+                let result = store.load()
+                return result.problem == nil
+                    && result.configuration.openDuration == UnfoldConfiguration.openDurationChoices.max()
+                    && result.configuration.closeDuration == UnfoldConfiguration.closeDurationChoices.min()
+            }
         }
     ]
 

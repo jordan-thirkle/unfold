@@ -46,6 +46,24 @@ public struct UnfoldConfiguration: Codable, Equatable, Sendable {
     public static let openDurationChoices: [Double] = [0.6, 0.9, 1.2, 1.6]
     public static let closeDurationChoices: [Double] = [0.25, 0.45, 0.6]
 
+    /// Clamps durations on decode. The menu only writes safe values, but the
+    /// JSON file is documented and hand-editable; an unclamped `openDuration`
+    /// of 42 would hold an opaque veil over the screen for 42 seconds.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.presetID = try container.decode(String.self, forKey: .presetID)
+        self.openDuration = Self.clamped(try container.decode(Double.self, forKey: .openDuration), to: Self.openDurationChoices)
+        self.animateOnOpen = try container.decode(Bool.self, forKey: .animateOnOpen)
+        self.animateOnClose = try container.decode(Bool.self, forKey: .animateOnClose)
+        self.closeDuration = Self.clamped(try container.decode(Double.self, forKey: .closeDuration), to: Self.closeDurationChoices)
+        self.respectReduceMotion = try container.decode(Bool.self, forKey: .respectReduceMotion)
+    }
+
+    private static func clamped(_ value: Double, to choices: [Double]) -> Double {
+        guard let lowest = choices.min(), let highest = choices.max() else { return value }
+        return min(max(value, lowest), highest)
+    }
+
     public var preset: AnimationPreset {
         AnimationPreset.preset(id: presetID)
     }
