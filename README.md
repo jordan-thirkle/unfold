@@ -106,6 +106,20 @@ It does not certify captured pixels or production controller transitions:
 bash scripts/test-presenter.sh
 ```
 
+## Acknowledgements
+
+The experimental snapshot mode was designed after studying public references:
+
+- **NUEM** (tgtools123/NUEM) — concept inspiration only. NUEM is GPLv3, so none
+  of its code was used or copied; Unfold's implementation is independent and
+  deliberately omits NUEM's private lock-screen integration.
+- **LidAngleSensor** (samhenrigold/LidAngleSensor) — demonstrated the public
+  approach to Apple's lid-angle sensor. Apache-2.0; no source was copied.
+
+## License
+
+See [LICENSE](LICENSE).
+
 It needs a logged-in graphical session, so it runs on a real Mac rather than
 in CI. The framework-free verifier above stays the CI gate.
 

@@ -16,7 +16,7 @@ cd "$ROOT"
 
 APP_NAME="Unfold"
 BUNDLE_ID="com.byjtt.unfold"
-VERSION="0.1.0"
+VERSION="0.2.0"
 MIN_MACOS="14.0"
 OUT="$ROOT/build/$APP_NAME.app"
 
