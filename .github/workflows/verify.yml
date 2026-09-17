@@ -18,10 +18,14 @@ jobs:
       - name: Verify the deterministic core
         run: swift run unfold-verify
 
-      # Informational only. On a Command Line Tools-only machine `swift test`
-      # builds the bundle and exits 0 without running anything, because
-      # XCTest was removed in CLT 26.x and SPM's generated runner falls back
-      # to the XCTest path. GitHub's macOS runners have a full Xcode install,
-      # so it does run here — but it is deliberately not the gate.
+      # Require execution evidence, not just a successful build/exit status.
+      # XCTest's separate zero-test summary is not a Swift Testing result.
       - name: Swift Testing suites
-        run: swift test
+        shell: bash
+        run: |
+          set -euo pipefail
+          swift test --enable-swift-testing --disable-xctest 2>&1 | tee swift-testing.log
+          if ! grep -Eq 'Test run with [1-9][0-9]* tests? passed' swift-testing.log; then
+            echo '::error::Swift Testing did not report a successful nonzero test count.'
+            exit 1
+          fi
