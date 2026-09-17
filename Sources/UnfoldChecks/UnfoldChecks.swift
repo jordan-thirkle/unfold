@@ -65,5 +65,5 @@ public enum UnfoldChecks {
         let body: @Sendable () -> Bool
     }
 
-    static let all: [Check] = simulationChecks + presetChecks + configurationChecks
+    static let all: [Check] = simulationChecks + presetChecks + configurationChecks + lidMotionChecks
 }

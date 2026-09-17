@@ -2,9 +2,10 @@
 
 **Your Mac unfolds when you open it.**
 
-Unfold is a small macOS menu bar app. Pick an animation, set the speed, leave it
-running: when the machine wakes, the desktop is revealed by a fold that opens
-from the hinge instead of just appearing.
+Unfold is a small macOS menu bar app. Its original mode reveals the desktop
+with animated masks after wake/unlock. The experimental snapshot mode instead
+projects captured desktop content around a bottom hinge, optionally following
+the physical lid angle. It is a prototype, not yet NUEM-level visual fidelity.
 
 It is a menu bar agent — no Dock icon, no window, nothing to close.
 
@@ -19,12 +20,34 @@ idea is narrower than the pitch:
 | **Unlock** (password required) | The fold plays the moment you unlock. |
 | **Lid close** | Best-effort. macOS begins clamshell sleep almost immediately, so the closing fold is short by design and may not finish. |
 
-**It cannot draw on the password screen.** That surface belongs to
-`loginwindow`, which runs as root in a separate session, so a normal app cannot
-draw there. Replacing the login screen wallpaper is a System Integrity
-Protected path, which means it is not something this app can or will do. The
-effect is therefore *"my desktop unfolds when I get in"*, not *"my password
-prompt folds"*.
+**This app does not support the password screen.** Snapshot content is cleared
+on lock/session transitions; no private lock-screen window APIs are used. Other
+projects use private APIs, so this is a product boundary, not a claim that all
+lock-screen effects are impossible.
+
+### Experimental snapshot mode (unreleased)
+
+- **Snapshot perspective preview…** captures a display and runs a four-second
+  bottom-hinge perspective animation.
+- **Track lid angle (experimental)…** calibrates to the current angle, polls
+  supported Apple HID sensors at 10 Hz, and smooths rendering on a display link.
+  Close more than 3° to begin; return within 1° of calibration to clear it.
+- Explicit consent and macOS **Screen Recording** permission are required.
+  Images remain in memory; nothing is saved or uploaded by the app.
+- Tracking is session-only, off by default, built-in-display-only, and stops on
+  sensor failure, lock, sleep, display changes or Reduce Motion. An active
+  tracking overlay has a 30-second safety timeout. Use **Stop snapshot effect**
+  at any time. The overlay is click-through: input reaches underlying apps.
+- This projects a plane, not calibrated viewer-relative perspective. Audio,
+  haptics, editable curves, shared looks and lock-screen support are not included.
+
+**Validation boundary:** 27 core checks and 53 presenter/model-layer assertions
+pass; a stationary sensor was read successfully. The final bundle initially
+stopped at Screen Recording permission checking. After relaunch, production logs
+confirmed capture, four-second preview playback and completion. The recording
+attempt missed that preview, so rendered visual quality is not certified.
+Moving-lid fidelity, frame pacing and actual lock/sleep transitions remain
+unverified. See [SECURITY.md](SECURITY.md) before use with sensitive content.
 
 ## Install
 
@@ -73,10 +96,11 @@ failing silently.
 swift run unfold-verify
 ```
 
-20 checks over the deterministic core, exiting non-zero on failure.
+27 checks over the deterministic core, exiting non-zero on failure.
 
-A second harness exercises the real AppKit presenter and renderer — window
-lifecycle, rendered state, event counts, and the closing path:
+The second harness runs 53 assertions over the AppKit presenter, window
+lifecycle, event counts, closing path, and snapshot model-layer geometry/cleanup.
+It does not certify captured pixels or production controller transitions:
 
 ```bash
 bash scripts/test-presenter.sh

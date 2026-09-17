@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private let monitor = SystemEventMonitor()
     private let presenter = OverlayPresenter()
+    private let snapshot = SnapshotFoldController()
     private var menuBar: MenuBarController?
     private var store: UnfoldConfigStore?
     private var configuration = UnfoldConfiguration.default
@@ -45,6 +46,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onConfigChanged: { [weak self] updated in self?.persist(updated) }
         )
 
+        snapshot.onStatus = { [weak self] text in self?.menuBar?.report(text) }
+        snapshot.onModeChanged = { [weak self] enabled in self?.menuBar?.snapshotEnabled = enabled }
+        menuBar?.onSnapshotPreview = { [weak self] in
+            guard let self else { return }
+            self.cancelWake()
+            self.presenter.dismiss()
+            self.snapshot.showPreview()
+        }
+        menuBar?.onSnapshotToggle = { [weak self] in
+            guard let self else { return }
+            self.cancelWake()
+            self.presenter.dismiss()
+            if self.snapshot.isEnabled { self.snapshot.stop(message: "Lid tracking disabled.") }
+            else { self.snapshot.enable() }
+        }
+        menuBar?.onSnapshotStop = { [weak self] in self?.snapshot.stop(message: "Snapshot stopped.") }
+        NotificationCenter.default.addObserver(self, selector: #selector(displayChanged),
+            name: NSApplication.didChangeScreenParametersNotification, object: nil)
+
         presenter.onProblem = { [weak self] message in
             self?.menuBar?.report(message)
         }
@@ -58,10 +78,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         monitor.stop()
+        cancelWake()
+        snapshot.stop()
+        NotificationCenter.default.removeObserver(self)
         presenter.dismiss()
     }
 
+    private func cancelWake() {
+        wakeTimer?.invalidate()
+        wakeTimer = nil
+    }
+
+    @objc private func displayChanged() {
+        snapshot.stop(message: "Snapshot stopped: display configuration changed.")
+    }
+
     private func handle(_ signal: SystemSignal) {
+        switch signal {
+        case .willSleep:
+            cancelWake()
+            snapshot.stop()
+            playClose()
+            return
+        case .screenLocked, .screensSlept, .sessionResigned, .screenSaverStarted:
+            cancelWake()
+            snapshot.stop()
+            presenter.dismiss()
+            return
+        default: break
+        }
         switch signal {
         case .woke, .screensWoke:
             // Get the windows ready before the user has finished typing.
@@ -75,10 +120,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if !SystemEventMonitor.isScreenLocked() {
                 playOpen()
             }
-        case .willSleep, .screenLocked:
-            playClose()
-        case .screensSlept, .sessionResigned, .screenSaverStarted:
-            break
+        case .willSleep, .screenLocked, .screensSlept, .sessionResigned, .screenSaverStarted:
+            break // Handled above; locked sessions never start a new overlay.
         }
     }
 
@@ -105,6 +148,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func playOpen() {
+        guard !snapshot.isBusy else { return }
         guard configuration.animateOnOpen else { return }
         guard reduceMotionAllowsAnimation else { return }
 
@@ -141,6 +185,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Preview always plays: it is an explicit action, so the Reduce Motion
     /// setting must not make the menu item look broken.
     private func preview() {
+        snapshot.stop()
+        cancelWake()
         lastOpenPlay = CACurrentMediaTime()
         presenter.play(
             preset: configuration.preset,

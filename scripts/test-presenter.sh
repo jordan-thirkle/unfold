@@ -12,5 +12,6 @@ swiftc -swift-version 6 -parse-as-library -I "$TMP" -L "$TMP" -lUnfoldCore \
   -Xlinker -rpath -Xlinker "$TMP" \
   "$ROOT/Sources/UnfoldApp/OverlayPresenter.swift" \
   "$ROOT/Sources/UnfoldApp/OverlayWindow.swift" \
+  "$ROOT/Sources/UnfoldApp/SnapshotFoldView.swift" \
   "$ROOT/Tests/PresenterChecks/PresenterChecks.swift" -o "$TMP/presenter-checks"
 "$TMP/presenter-checks"

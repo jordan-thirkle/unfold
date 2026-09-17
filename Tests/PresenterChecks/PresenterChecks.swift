@@ -89,6 +89,32 @@ struct PresenterChecks {
         }
 
 
+        let identity = SnapshotFoldView.transform(progress: 0, height: 800)
+        check(identity.m11 == 1 && identity.m22 == 1 && identity.m42 == 0,
+              "snapshot open plane preserves desktop coordinates")
+        let folded = SnapshotFoldView.transform(progress: 0.5, height: 800)
+        check(folded.m22 < 1 && folded.m23 != 0 && folded.m34 != 0,
+              "snapshot fold rotates textured plane with perspective")
+        let context = CGContext(data: nil, width: 16, height: 16, bitsPerComponent: 8,
+                                bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+                                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        let snapshotView = SnapshotFoldView(frame: CGRect(x: 0, y: 0, width: 800, height: 600), image: context.makeImage()!)
+        snapshotView.update(progress: 0.5)
+        check(snapshotView.layer?.sublayers?.first?.contents != nil, "snapshot renderer retains texture while active")
+        snapshotView.clear()
+        check(snapshotView.layer?.sublayers?.first?.contents == nil, "snapshot renderer releases texture on cleanup")
+
+        // Pure transform math — no off-screen rendering, no data conversion:
+        // the fold must foreshorten the plane smoothly and stop at the
+        // intended tilt, which is what pins the hinge read.
+        let steps: [Double] = [0, 0.2, 0.4, 0.6, 0.8, 1]
+        let scales = steps.map { SnapshotFoldView.transform(progress: $0, height: 500).m22 }
+        check(scales[0] == 1, "snapshot transform is identity at progress zero")
+        check(zip(scales, scales.dropFirst()).allSatisfy { $0 > $1 },
+              "snapshot foreshortening decreases monotonically")
+        check(abs(scales[5] - cos(80 * Double.pi / 180)) < 1e-6,
+              "snapshot closed tilt matches the intended 80 degrees")
+
         print("Presenter checks: \(failures) failures")
         exit(failures == 0 ? 0 : 1)
     }

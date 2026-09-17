@@ -47,8 +47,24 @@ final class MenuBarController {
         rebuildMenu()
     }
 
+    var onSnapshotPreview: (() -> Void)?
+    var onSnapshotToggle: (() -> Void)?
+    var onSnapshotStop: (() -> Void)?
+    var snapshotEnabled = false { didSet { rebuildMenu() } }
+
     private func rebuildMenu() {
         let menu = NSMenu()
+        let snapshotPreview = NSMenuItem(title: "Snapshot perspective preview…", action: #selector(snapshotPreviewAction), keyEquivalent: "")
+        snapshotPreview.target = self
+        menu.addItem(snapshotPreview)
+        let tracking = NSMenuItem(title: "Track lid angle (experimental)…", action: #selector(snapshotToggleAction), keyEquivalent: "")
+        tracking.target = self
+        tracking.state = snapshotEnabled ? .on : .off
+        menu.addItem(tracking)
+        let stop = NSMenuItem(title: "Stop snapshot effect", action: #selector(snapshotStopAction), keyEquivalent: "")
+        stop.target = self
+        menu.addItem(stop)
+        menu.addItem(.separator())
 
         if let problem {
             let item = NSMenuItem(title: problem, action: nil, keyEquivalent: "")
@@ -194,6 +210,10 @@ final class MenuBarController {
         report(LoginItem.setEnabled(enabling))
         rebuildMenu()
     }
+
+    @objc private func snapshotPreviewAction() { onSnapshotPreview?() }
+    @objc private func snapshotToggleAction() { onSnapshotToggle?() }
+    @objc private func snapshotStopAction() { onSnapshotStop?() }
 
     @objc private func quit() {
         NSApplication.shared.terminate(nil)

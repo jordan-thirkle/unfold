@@ -1,36 +1,34 @@
 # Security
 
-## What this app can see
+## Permissions and screen contents
 
-Unfold observes system events only:
+The original timed mask effect requires no capture permission. The experimental
+**Snapshot perspective preview** and **Track lid angle** actions explicitly ask
+for consent and require macOS Screen Recording permission. The feature is off
+by default and tracking is not persisted across launches.
 
-- power state — wake, sleep, screen sleep/wake
-- session state — login, fast user switching, lock/unlock
-- lid state, read from the IOKit registry key `AppleClamshellState`
+ScreenCaptureKit captures one display image per fold. Images remain in memory;
+Unfold does not save or upload them. Cancellation discards pending results and
+clears the layer texture. Capture has a five-second timeout, preview lasts four
+seconds, and a tracking overlay has a thirty-second safety limit. macOS may show
+its recording indicator. Ad-hoc rebuilds may require permission again.
 
-It draws a borderless, click-through, non-key window above the desktop for the
-duration of the animation, then removes it.
+Tracking uses the built-in display and HID lid-angle reports. It stops on sensor
+read failure, lock, sleep, session resignation or display changes. There are no
+private lock-screen window APIs and no sleep-prevention settings. This is an
+experimental best-effort session guard, not a security boundary guaranteed by
+macOS; lock/session notifications use undocumented notification names. Do not
+use with sensitive content until real lock-transition testing has been completed.
 
-## What this app cannot do
+## Other data
 
-- It has **no network code**. There is no HTTP client, no telemetry, no
-  analytics, no update check anywhere in this repository.
-- It does not request Accessibility, Screen Recording, or Input Monitoring
-  permissions, and it does not work by synthesising input.
-- It does not read your files, keychain, clipboard, or window contents.
-- It cannot draw on the login screen. It does not attempt to.
+Settings are read/written under Application Support/ByJTT/Unfold. The app also
+observes power/session events and binary lid state. It has no network client,
+telemetry, clipboard access, Accessibility or Input Monitoring requirement.
+Logs include operational status, not captured pixels. The click-through overlay
+never takes keyboard focus. Input still reaches underlying apps during a fold.
 
-## Permissions
+## Reporting
 
-None are required. If a future version needs one, it will be documented here
-before the release that needs it, not after.
-
-## Reporting a problem
-
-Open an issue at
-<https://github.com/jordan-thirkle/unfold/issues>. If the report is sensitive,
-say so in the issue and a private channel will be arranged rather than asking
-you to post details publicly.
-
-Please include your macOS version, whether the app was built from source or
-downloaded, and the exact steps that triggered the problem.
+Report issues at https://github.com/jordan-thirkle/unfold/issues. Do not attach
+sensitive screenshots; include macOS version, hardware and reproduction steps.
